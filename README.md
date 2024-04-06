@@ -2,7 +2,7 @@
 
 ## 数据预处理
 
-[预处理数据 Demo](preprocessing_0406.ipynb)
+[预处理数据 Demo](./preprocessing/preprocessing_0406.ipynb)
 
 1. 筛选出高缺失率的特征进行删除（暂定阈值为90%）
 2. 对特征进行分类：离散型、连续浮点型、连续整型
