@@ -4,86 +4,89 @@
 
 [预处理数据 Demo](./preprocessing/preprocessing.ipynb)
 
-1. 去除高缺失率特征（暂定阈值为90%, 60%）
-2. 去除一元特征
-3. 对特征进行分类：离散型、连续浮点型、连续整型
-    - 离散型：判断标准采用总观测值的5%作为阈值
-4. 根据不同类型的特征进行缺失值处理
-    - 离散型：使用众数进行填充（或者后续可以，根据数据分布情况进行插值处理）
-    - 连续浮点型：使用平均值进行填充
-    - 连续整型，使用四舍五入后的平均值进行填充
-5. 对outlier的数据进行修改
+### 使用文件
 
-处理数据文件说明：
+- `data_set/preprocessed/01_remove/Y_remove.npy`: 移除高缺失率样本数据后的Y数据集
+- `data_set/preprocessed/03_outliers`: 处理后的X数据集
+    - 移除高缺失率的特征及样本
+    - 移除一元特征
+    - 调整outlier数据
+- `data_set/preprocessed/04_processed_features`: 针对每个label进行特征相关性分析，移除了无关特征
 
-1. `X_drop.npy`: 去除高缺失率（90%）特征和一元特征
-2. `X_filled.npy`: 填充缺失值
-3. `X_processed.npy`: 处理离群值，预处理完毕后保存的数据文件
+### 工具函数
 
-## Feature Selection
-
-[feature selection](./preprocessing/feature_selection.ipynb)
-
-1. 对数据集进行分别处理，去除和目标变量无关的特征。
-
-## Update Messages
-
-- [2024/04/07 Maple]
-    - 缺失率阈值按90%，60%进行分类处理，相关数据在`data_set`文件夹中的`drop_90`和`drop_60`中。
-    - `processing.ipynb`和`feature_selection.ipynb`中相关函数已经封装。
-
-后续建模可能用到的函数：
-
-`classify_features`将数据集中的特征分类为离散型、连续性整型和连续性浮点型三种类型。
-
+#### 特征分类
 ```python
-import numpy as np
+def classify_features(X, threshold_ratio=0.05):
+  """
+  将数据集的特征分为离散型、连续型、连续整型和连续浮点型。
+
+  Parameters:
+  - X: 要对特征进行分类的数据集。
+  - threshold_ratio: 用于确定特征是离散还是连续的阈值比率。
+
+  Returns:
+  - discrete_feature_indices: 离散特征的索引。
+  - continuous_feature_indices: 连续特征的索引。
+  - binary_feature_indices: 二元特征的索引。
+  - multi_feature_indices: 多元特征的索引。
+  - continuous_integer_indices: 连续整型特征的索引。
+  - continuous_float_indices: 连续浮点型特征的索引。
+  """
+  # 计算每个特征的唯一值数量
+  unique_counts = np.apply_along_axis(lambda col: len(np.unique(col[~np.isnan(col)])), 0, X)
+
+  # 根据阈值比率划分离散和连续特征
+  discrete_feature_indices = np.where((unique_counts / X.shape[0]) < threshold_ratio)[0]
+  continuous_feature_indices = np.where((unique_counts / X.shape[0]) >= threshold_ratio)[0]
+
+  # 初始化列表，以保存连续整数和浮点特征的索引
+  continuous_integer_indices = []
+  continuous_float_indices = []
+
+  # 将连续特征分为整数和浮点两种
+  for index in continuous_feature_indices:
+    if np.all(np.mod(X[:, index][~np.isnan(X[:, index])], 1) == 0):
+      continuous_integer_indices.append(index)
+    else:
+      continuous_float_indices.append(index)
+
+  # 初始化列表，以保存二元和多元特征的索引
+  binary_feature_indices = []
+  multi_feature_indices = []
+
+  # 将离散特征分为二元和多元两种
+  for index in discrete_feature_indices:
+    if len(np.unique(X[:, index][~np.isnan(X[:, index])])) == 2:
+      binary_feature_indices.append(index)
+    else:
+      multi_feature_indices.append(index)
+
+  return discrete_feature_indices, continuous_feature_indices, binary_feature_indices, multi_feature_indices, continuous_integer_indices, continuous_float_indices
 
 
-def classify_features(X_dataset, threshold_ratio=0.05):
-    """
-    Classify features of the dataset into discrete, continuous integer, and continuous float categories.
+def print_feature_classification(X):
+  """
+  输出特征的分类情况。
 
-    Parameters:
-    - X_dataset: The dataset to classify features for.
-    - threshold_ratio: The threshold ratio to determine if a feature is discrete or continuous.
+  Parameters:
+  - X: 要输出特征分类的数据集。
+  """
+  discrete_feature_indices, continuous_feature_indices, binary_feature_indices, multi_feature_indices, continuous_integer_indices, continuous_float_indices = classify_features(
+    X)
 
-    Returns:
-    - discrete_feature_indices: Indices of discrete features.
-    - continuous_integer_indices: Indices of continuous integer features.
-    - continuous_float_indices: Indices of continuous float features.
-    """
-    # Determine the unique counts for each feature
-    unique_counts = np.apply_along_axis(lambda col: len(np.unique(col[~np.isnan(col)])), 0, X_dataset)
+  print("离散特征数量: {}".format(len(discrete_feature_indices)))
+  print("连续特征数量: {}".format(len(continuous_feature_indices)))
+  print("二元特征数量: {}".format(len(binary_feature_indices)))
+  print("多元特征数量: {}".format(len(multi_feature_indices)))
+  print("连续整型特征数量: {}".format(len(continuous_integer_indices)))
+  print("连续浮点型特征数量: {}".format(len(continuous_float_indices)))
 
-    # Determine feature types based on the proportion of unique values
-
-    discrete_feature_indices = np.where((unique_counts / X_dataset.shape[0]) < threshold_ratio)[0]
-    continuous_feature_indices = np.where((unique_counts / X_dataset.shape[0]) >= threshold_ratio)[0]
-
-    # Initialize lists to save indices of continuous integer and float features
-    continuous_integer_indices = []
-    continuous_float_indices = []
-
-    # Classify continuous features into integer and float
-    for index in continuous_feature_indices:
-        if np.all(np.mod(X_dataset[:, index][~np.isnan(X_dataset[:, index])], 1) == 0):
-            continuous_integer_indices.append(index)
-        else:
-            continuous_float_indices.append(index)
-
-    return discrete_feature_indices, continuous_integer_indices, continuous_float_indices
-
-
-# Example usage
-X_drop = np.load('../data_set/drop_90/X_drop.npy')
-
-# Classify features of the dataset
-discrete_indices, continuous_int_indices, continuous_float_indices = classify_features(X_drop)
-
-print("Discrete feature indices:", discrete_indices)
-print("Continuous integer feature indices:", continuous_int_indices)
-print("Continuous float feature indices:", continuous_float_indices)
-
+  print("\n离散特征索引: {}".format(discrete_feature_indices))
+  print("连续特征索引: {}".format(continuous_feature_indices))
+  print("二元特征索引: {}".format(binary_feature_indices))
+  print("多元特征索引: {}".format(multi_feature_indices))
+  print("连续整型特征索引: {}".format(continuous_integer_indices))
+  print("连续浮点型特征索引: {}".format(continuous_float_indices))
 ```
 
