@@ -253,8 +253,6 @@ print_missing_ratio(X_filled_naive)
 # Save the processed data
 np.save('../data_set/preprocessed/02_fill/X_filled_naive.npy', X_filled_naive)
 
-from sklearn.impute import KNNImputer
-
 
 def knn_fill(X, n_neighbors=5):
     """
@@ -294,9 +292,6 @@ print_missing_ratio(X_filled_regression_naive)
 
 # Save the processed data
 np.save('../data_set/preprocessed/02_filled/X_filled_regression_naive.npy', X_filled_regression_naive)
-
-from sklearn.linear_model import LinearRegression
-from sklearn.impute import SimpleImputer
 
 
 def reverse_regression_fill(X, Y):
