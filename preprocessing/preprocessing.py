@@ -628,3 +628,21 @@ for label_index in range(y_data.shape[1]):
             x_data_relevant_regression_rf)
     np.save(f'../data_set/preprocessed/04_processed_features/regression/svr/X_relevant_label_{label_index + 1}.npy',
             x_data_relevant_regression_svr)
+
+# Load the test data
+X_test = np.load('../data_set/X_test.npy')
+
+# Print the shape of the test data
+print("X_test shape: {}".format(X_test.shape))
+
+# Print the missing ratio of the test data
+print_missing_ratio(X_test)
+
+# Use the KNN method to fill the missing values in the test data
+X_filled_knn = knn_fill(X_remove_unary)
+
+# Print the missing ratio of the test data after filling the missing values
+print_missing_ratio(X_filled_knn)
+
+# Save the processed test data
+np.save('../data_set/preprocessed/02_filled/X_filled_knn.npy', X_filled_knn)
