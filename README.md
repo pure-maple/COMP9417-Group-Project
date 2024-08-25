@@ -1,5 +1,7 @@
 # COMP9417_GROUP_PROJECT
 
+Multitask Machine Learning on Clinical Data
+
 ## Data preprocessing
 
 ### Introduction
